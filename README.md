@@ -25,3 +25,5 @@ Once the exploration is complete, the script prints the number of full chests fo
 Finally, the main function is called to start the script execution.
 
 TL;DR the script fetches the content of URLs, explores rooms in a castle, checks chests in each room, and keeps track of visited rooms and chests to avoid revisiting them. The result is a list of full chests found during the exploration.
+
+-> castle_promise use Promise.all to parallelise the search and speed it up.
