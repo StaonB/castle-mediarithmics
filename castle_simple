@@ -12,15 +12,23 @@ async function fetchURL(url) {
   }
 }
 
+// Fonction pour obtenir l'heure actuelle au format HH:MM:SS
+function getCurrentTime() {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+}
+
 // Fonction pour explorer une pièce du château
 async function exploreRoom(roomURL, visitedRooms, visitedChests, fullChests) {
   // Vérifier si la pièce a déjà été visitée
   if (visitedRooms.has(roomURL)) {
-    console.log(`Room ${roomURL} already visited. Skipping...`);
     return;
   }
 
-  console.log(`Exploring ${roomURL}`);
+  console.log(`[${getCurrentTime()}] Checking room  ${roomURL}`);
 
   // Ajouter la pièce à la liste des pièces visitées
   visitedRooms.add(roomURL);
@@ -33,11 +41,10 @@ async function exploreRoom(roomURL, visitedRooms, visitedChests, fullChests) {
     for (const chestURL of room.chests) {
       // Vérifier si le coffre a déjà été visité
       if (visitedChests.has(chestURL)) {
-        console.log(`Chest ${chestURL} already visited. Skipping...`);
         continue;
       }
 
-      console.log(`Checking chest ${chestURL}`);
+      console.log(`[${getCurrentTime()}] Checking chest ${chestURL}`);
 
       // Ajouter le coffre à la liste des coffres visités
       visitedChests.add(chestURL);
