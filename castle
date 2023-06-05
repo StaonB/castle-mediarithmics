@@ -1,0 +1,87 @@
+const fetch = require('node-fetch');
+
+// Fonction pour récupérer le contenu d'une URL
+async function fetchURL(url) {
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Error fetching URL: ${url}`, error);
+    throw error;
+  }
+}
+
+// Fonction pour explorer une pièce du château
+async function exploreRoom(roomURL, visitedRooms, visitedChests, fullChests) {
+  // Vérifier si la pièce a déjà été visitée
+  if (visitedRooms.has(roomURL)) {
+    return;
+  }
+
+  console.log(`Exploring ${roomURL}`);
+
+  // Ajouter la pièce à la liste des pièces visitées
+  visitedRooms.add(roomURL);
+
+  try {
+    // Récupérer les détails de la pièce
+    const room = await fetchURL(`https://infinite-castles.azurewebsites.net/${roomURL}`);
+
+    // Parcourir les coffres de la pièce
+    for (const chestURL of room.chests) {
+      // Vérifier si le coffre a déjà été visité
+      if (visitedChests.has(chestURL)) {
+        continue;
+      }
+
+      console.log(`Checking chest ${chestURL}`);
+
+      // Ajouter le coffre à la liste des coffres visités
+      visitedChests.add(chestURL);
+
+      try {
+        // Récupérer le statut du coffre
+        const chest = await fetchURL(`https://infinite-castles.azurewebsites.net/${chestURL}`);
+
+        // Vérifier si le coffre est plein
+        if (chest.status === 'full') {
+          // Ajouter le coffre à la liste des coffres pleins
+          fullChests.push(chestURL);
+        }
+      } catch (error) {
+        console.error(`Error fetching chest status: ${error.message}`);
+      }
+    }
+
+    // Explorer les pièces liées
+    for (const linkedRoomURL of room.rooms) {
+      await exploreRoom(linkedRoomURL, visitedRooms, visitedChests, fullChests);
+    }
+  } catch (error) {
+    console.error(`Error exploring castle: ${error.message}`);
+  }
+}
+
+async function main() {
+  const entryURL = '/castles/1/rooms/entry';
+  const visitedRooms = new Set();
+  const visitedChests = new Set();
+  const fullChests = [];
+
+  console.log(`Exploring ${entryURL}`);
+
+  try {
+    // Explorer le château à partir de l'entrée
+    await exploreRoom(entryURL, visitedRooms, visitedChests, fullChests);
+
+    // Afficher les résultats
+    console.log('Nombre de coffres pleins trouvés :', fullChests.length);
+    console.log('Emplacements des coffres pleins :', fullChests);
+  } catch (error) {
+    console.error(`An error occurred: ${error.message}`);
+  }
+}
+
+// Lancer le script
+main();
