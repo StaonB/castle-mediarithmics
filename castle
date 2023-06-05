@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 
-// Fonction pour récupérer le contenu d'une URL
+// Function to fetch the content of a URL
 async function fetchURL(url) {
   try {
     const response = await fetch(url);
@@ -12,52 +12,67 @@ async function fetchURL(url) {
   }
 }
 
-// Fonction pour explorer une pièce du château
+// Function to explore a room in the castle
 async function exploreRoom(roomURL, visitedRooms, visitedChests, fullChests) {
-  // Vérifier si la pièce a déjà été visitée
+  // Check if the room has already been visited
   if (visitedRooms.has(roomURL)) {
+    console.log(`Room ${roomURL} already visited. Skipping...`);
     return;
   }
 
   console.log(`Exploring ${roomURL}`);
 
-  // Ajouter la pièce à la liste des pièces visitées
+  // Add the room to the list of visited rooms
   visitedRooms.add(roomURL);
 
   try {
-    // Récupérer les détails de la pièce
+    // Fetch the room details
     const room = await fetchURL(`https://infinite-castles.azurewebsites.net/${roomURL}`);
 
-    // Parcourir les coffres de la pièce
+    // Create an array to hold promises for fetching chest statuses
+    const chestPromises = [];
+
+    // Iterate over the chests in the room
     for (const chestURL of room.chests) {
-      // Vérifier si le coffre a déjà été visité
+      // Check if the chest has already been visited
       if (visitedChests.has(chestURL)) {
+        console.log(`Chest ${chestURL} already visited. Skipping...`);
         continue;
       }
 
       console.log(`Checking chest ${chestURL}`);
 
-      // Ajouter le coffre à la liste des coffres visités
+      // Add the chest to the set of visited chests
       visitedChests.add(chestURL);
 
       try {
-        // Récupérer le statut du coffre
-        const chest = await fetchURL(`https://infinite-castles.azurewebsites.net/${chestURL}`);
-
-        // Vérifier si le coffre est plein
-        if (chest.status === 'full') {
-          // Ajouter le coffre à la liste des coffres pleins
-          fullChests.push(chestURL);
-        }
+        // Push the promise for fetching chest status into the array
+        chestPromises.push(fetchURL(`https://infinite-castles.azurewebsites.net/${chestURL}`));
       } catch (error) {
         console.error(`Error fetching chest status: ${error.message}`);
       }
     }
 
-    // Explorer les pièces liées
-    for (const linkedRoomURL of room.rooms) {
-      await exploreRoom(linkedRoomURL, visitedRooms, visitedChests, fullChests);
+    // Fetch chest statuses in parallel
+    const chestStatuses = await Promise.all(chestPromises);
+
+    // Iterate over the fetched chest statuses
+    for (let i = 0; i < room.chests.length; i++) {
+      const chestURL = room.chests[i];
+      const chest = chestStatuses[i];
+
+      // Check if the chest is not empty
+      if (chest.status !== 'This chest is empty :/ Try another one!') {
+        // Add the full chest to the array
+        fullChests.push(chestURL);
+      }
     }
+
+    // Explore the linked rooms
+    const explorePromises = room.rooms.map((linkedRoomURL) =>
+      exploreRoom(linkedRoomURL, visitedRooms, visitedChests, fullChests)
+    );
+    await Promise.all(explorePromises);
   } catch (error) {
     console.error(`Error exploring castle: ${error.message}`);
   }
@@ -72,16 +87,16 @@ async function main() {
   console.log(`Exploring ${entryURL}`);
 
   try {
-    // Explorer le château à partir de l'entrée
+    // Explore the castle starting from the entry
     await exploreRoom(entryURL, visitedRooms, visitedChests, fullChests);
 
-    // Afficher les résultats
-    console.log('Nombre de coffres pleins trouvés :', fullChests.length);
-    console.log('Emplacements des coffres pleins :', fullChests);
+    // Display the results
+    console.log('Number of full chests found:', fullChests.length);
+    console.log('Locations of full chests:', fullChests);
   } catch (error) {
     console.error(`An error occurred: ${error.message}`);
   }
 }
 
-// Lancer le script
+// Launch the script
 main();
